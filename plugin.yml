@@ -1,0 +1,9 @@
+name: Google Cloud SDK Login Provider
+description: gcloud sdk login
+author: https://github.com/fanduel
+configuration:
+  properties:
+    project:
+      type: string
+  required:
+  - project
