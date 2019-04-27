@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SUBMODULE="git@github.com:fanduel/k8s-tools.git"
-SUBMODULE_VERSION='v1.2'
+SUBMODULE_VERSION='v1.7.8'
 SUBMODULE_DIR="k8s-tools"
 
 export CLUSTER=${BUILDKITE_PLUGIN_KUBE_DEPLOY_CLUSTER:-'dev'}
