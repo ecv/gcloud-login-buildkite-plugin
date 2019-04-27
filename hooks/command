@@ -1,51 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SUBMODULE="git@github.com:fanduel/k8s-tools.git"
+SUBMODULE_REPO="git@github.com:fanduel/k8s-tools.git"
 SUBMODULE_VERSION='v1.7.8'
 SUBMODULE_DIR="k8s-tools"
 
-export CLUSTER=${BUILDKITE_PLUGIN_KUBE_DEPLOY_CLUSTER:-'dev'}
+GCLOUD_PROJECT=${BUILDKITE_PLUGIN_GCLOUD_PROJECT:-'steam-canto-177116'}
 
-TAG=${TAG}
-ECR=${ECR:-'077700697743.dkr.ecr.us-east-1.amazonaws.com'}
-
-KUBECTL_IMAGE="${ECR}/toolkit-gke:latest"
-
-declare -A GCLOUD=( [dev]='draft-api-dev'
-                    [staging]='steam-canto-177116'
-                    [production]='draft-api' )
-
-GCLOUD_PROJECT=${GCLOUD[${DEPLOYMENT}]}
 SERVICE_ACCOUNT="gcr-buildkite@${GCLOUD_PROJECT}.iam.gserviceaccount.com"
 SERVICE_ACCOUNT_BUCKET="s3://fanduel-ci-secrets/gcloud-service-accounts"
 SERVICE_ACCOUNT_JSON="gcloud-service-account.json"
 
-  KUBECTL_GCLOUD_ARGS="-e CLOUDSDK_CONTAINER_CLUSTER=${CLUSTER} \
-    -e CLOUDSDK_CORE_PROJECT=${GCLOUD_PROJECT}"
-aws s3 cp ${SERVICE_ACCOUNT_BUCKET}/${GCLOUD_PROJECT}.json \
-  ./${SERVICE_ACCOUNT_JSON}
+ECR=${ECR:-'077700697743.dkr.ecr.us-east-1.amazonaws.com'}
+KUBECTL_IMAGE="${ECR}/toolkit-gke:v1.0.2"
+KUBECTL_GCLOUD_ARGS="-e CLOUDSDK_CORE_PROJECT=${GCLOUD_PROJECT}"
 
-docker pull ${KUBECTL_IMAGE}
 KUBECTL_CMD="docker run -ti \
   --mount source=gcloud,target=/root/.config/gcloud \
   -v ${BUILDKITE_BUILD_CHECKOUT_PATH}:/app \
-  -e CI=${CI} \
-  -e CLOUD=${CLOUD} \
-  -e CLUSTER=${CLUSTER} \
-  -e DEPLOYMENT=${DEPLOYMENT} \
   ${KUBECTL_GCLOUD_ARGS} \
   ${KUBECTL_IMAGE}"
 
-## gcloud service accounts (no aws equivalent)
-if [[ ${CLOUD} == "gcloud" ]]
-then
-  ${KUBECTL_CMD} gcloud auth activate-service-account \
-    --key-file "/app/${SERVICE_ACCOUNT_JSON}"
-fi
+DOCKER_COMMON_ARGS="-v ${BUILDKITE_BUILD_CHECKOUT_PATH}:/app \
+  -e CI=${CI} \
+  -e CLOUD=gcloud"
 
 ## k8s-tools
-git submodule add --force ${SUBMODULE} ${SUBMODULE_DIR}
+git submodule add --force ${SUBMODULE_REPO} ${SUBMODULE_DIR}
 cd ${SUBMODULE_DIR}; git fetch; git checkout ${SUBMODULE_VERSION}; cd ..
 git submodule status --recursive
-${KUBECTL_CMD} /bin/sh -c "cd /app/${SUBMODULE_DIR}; gke/init -d gke/sdk-configs"
+
+docker pull ${KUBECTL_IMAGE}
+
+kubectl_run() {
+  docker run -w /app \
+    -i ${DOCKER_COMMON_ARGS} \
+    --mount source=gcloud,target=/root/.config/gcloud \
+    ${KUBECTL_GCLOUD_ARGS} \
+    ${KUBECTL_IMAGE} /bin/sh -c "${*}"
+}
+
+aws s3 cp ${SERVICE_ACCOUNT_BUCKET}/${GCLOUD_PROJECT}.json \
+  ./${SERVICE_ACCOUNT_JSON}
+
+kubectl_run gcloud auth activate-service-account \
+    --key-file "/app/${SERVICE_ACCOUNT_JSON}"
+
+kubectl_run ${BUILDKITE_COMMAND}
