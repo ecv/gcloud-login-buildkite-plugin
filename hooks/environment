@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SUBMODULE_REPO="git@github.com:fanduel/k8s-tools.git"
-SUBMODULE_VERSION='v1.7.8'
-SUBMODULE_DIR="k8s-tools"
-
 GCLOUD_PROJECT=${BUILDKITE_PLUGIN_GCLOUD_PROJECT:-'steam-canto-177116'}
 
 SERVICE_ACCOUNT="gcr-buildkite@${GCLOUD_PROJECT}.iam.gserviceaccount.com"
@@ -24,11 +20,6 @@ KUBECTL_CMD="docker run -ti \
 DOCKER_COMMON_ARGS="-v ${BUILDKITE_BUILD_CHECKOUT_PATH}:/app \
   -e CI=${CI} \
   -e CLOUD=gcloud"
-
-## k8s-tools
-git submodule add --force ${SUBMODULE_REPO} ${SUBMODULE_DIR}
-cd ${SUBMODULE_DIR}; git fetch; git checkout ${SUBMODULE_VERSION}; cd ..
-git submodule status --recursive
 
 docker pull ${KUBECTL_IMAGE}
 
