@@ -8,7 +8,7 @@ SERVICE_ACCOUNT_BUCKET="s3://fanduel-ci-secrets/gcloud-service-accounts"
 SERVICE_ACCOUNT_JSON="gcloud-service-account.json"
 
 ECR=${ECR:-'077700697743.dkr.ecr.us-east-1.amazonaws.com'}
-KUBECTL_IMAGE="${ECR}/toolkit-gke:v1.0.2"
+KUBECTL_IMAGE="${ECR}/toolkit-gke:v1.1.0"
 KUBECTL_GCLOUD_ARGS="-e CLOUDSDK_CORE_PROJECT=${GCLOUD_PROJECT}"
 
 KUBECTL_CMD="docker run -ti \
